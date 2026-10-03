@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.rtech.domain"
+    namespace = "com.rtech.rideflow.domain"
     compileSdk {
         version = release(37)
     }

@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -25,3 +26,4 @@ dependencyResolutionManagement {
 rootProject.name = "RideFlow"
 include(":app")
 include(":domain")
+include(":data")

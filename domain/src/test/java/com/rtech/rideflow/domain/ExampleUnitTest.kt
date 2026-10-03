@@ -1,4 +1,4 @@
-package com.rtech.domain
+package com.rtech.rideflow.domain
 
 import org.junit.Test
 
