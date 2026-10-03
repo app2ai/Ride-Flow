@@ -24,4 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "RideFlow"
 include(":app")
- 
+include(":domain")
