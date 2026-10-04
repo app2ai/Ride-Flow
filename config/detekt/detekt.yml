@@ -1,0 +1,11 @@
+# RideFlow detekt overrides. Builds on detekt's default config (buildUponDefaultConfig = true).
+
+naming:
+  FunctionNaming:
+    # Composables are PascalCase by convention.
+    ignoreAnnotated: ['Composable']
+
+complexity:
+  LongParameterList:
+    # Stateless Compose screens take state plus several callbacks.
+    ignoreAnnotated: ['Composable']

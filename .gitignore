@@ -16,3 +16,9 @@
 .cxx
 local.properties
 .kotlin
+/docs
+/data/build
+/core/build/intermediates/ktLint/reporters.bin
+/feature/build/intermediates/ktLint/reporters.bin
+/core/build/intermediates/ktLint/reporterProviders.bin
+/feature/build/intermediates/ktLint/reporterProviders.bin

@@ -5,6 +5,10 @@ Clean Architecture + MVI, multi-module, Jetpack Compose, and a Spring Boot backe
 Read this file fully before every task. When a rule here conflicts with a general
 habit, this file wins.
 
+The reference design is `docs/tech-docs/RideFlow — Android App HLD & LLD.pdf`. Use it for
+scope, entities, flows and phase plans. Its code samples are illustrative only: where they
+conflict with this file, **this file wins** (known conflicts are listed in §14).
+
 ---
 
 ## 1. Project Facts
@@ -19,10 +23,14 @@ habit, this file wins.
 | Async | Coroutines + Flow (no LiveData, no RxJava) |
 | Maps | Google Maps Compose + Places API + Directions API |
 | Payment | Razorpay (test mode during development) |
-| Backend | Spring Boot (separate repo: `rideflow-backend`) |
-| Real-time | WebSocket |
+| Backend | Spring Boot (separate repo: `rideflow-backend`) + PostgreSQL + Redis geo-index |
+| Real-time | WebSocket via **OkHttp's WebSocket client** (no Ktor client; one HTTP stack) |
+| Push | Firebase Cloud Messaging (ride-status and receipt pushes) |
+| Background work | WorkManager (retries mutations queued in Room when back online) |
 | Local storage | Room + DataStore |
 | Network | Retrofit + OkHttp |
+| Date/time | `kotlinx-datetime` (`Instant`); `kotlin.time.Duration` for durations |
+| Static analysis | ktlint (`org.jlleitschuh.gradle.ktlint`, `.editorconfig`) + detekt 2.0 (`dev.detekt`, `config/detekt/detekt.yml`), applied to every module from the root `build.gradle.kts` |
 | Build | Gradle Version Catalog (`gradle/libs.versions.toml`) + convention plugins in `build-logic/` |
 
 Never hardcode dependency versions inside a module's `build.gradle.kts`. Always add
@@ -77,6 +85,10 @@ See §3 (module boundaries), §4 (Clean Architecture detail), and §5 (MVI detai
 
 - Cross-feature navigation goes only through `:core:navigation`.
 - Features never import `:data`. They talk to use cases only; Koin wires implementations in `:app`.
+- `:data` is a **single module**. Where the HLD/LLD says `:data:local` or `:data:remote`, read
+  it as the `local/` and `remote/` packages inside `:data`. Do not create sub-modules.
+- Domain packages are singular: `model/`, `usecase/`, `repository/` (not the PDF's
+  `entities/`, `usecases/`, `repositories/`). See `domain/CLAUDE.md`.
 
 ### Convention plugins
 
@@ -124,6 +136,10 @@ feature/<name>/
 - **Reducer** is a pure function `(State, Intent) -> State`: no `suspend`, no coroutines, no I/O, no logging.
 - Invalid state transitions return the current state unchanged. Never throw.
 - ViewModel exposes `StateFlow<State>` and `Flow<Effect>`. `MutableStateFlow` and `Channel` stay private.
+- Every Intent is handled in `dispatch()` through an exhaustive `when` with no `else` branch.
+  Intents that only change state map explicitly to `Unit`. No silent drops.
+- Anything time- or randomness-dependent (timestamps, IDs) is produced in the ViewModel or use
+  case and carried on the Intent. The reducer never calls `Clock.System.now()`.
 - Navigation, toasts, and snackbars happen only through Effects.
 - Screens hold no business logic. Only UI-only state (animation, scroll, focus) may use `remember`.
 - Screens never call use cases directly. They only call `viewModel.dispatch(intent)`.
@@ -139,16 +155,27 @@ feature/<name>/
 
 Patterns already chosen for this project (reuse them, don't reinvent):
 
-| Concern | Pattern |
-|---|---|
-| Fare calculation | Strategy + `FareStrategyFactory` |
-| Ride lifecycle | State (sealed `RideState`) |
-| Location / status streams | Observer (Flow) |
-| Cancel with undo, payment retry | Command |
-| Ride request creation | Builder |
-| Request validation | Chain of Responsibility |
-| GPS smoothing, caching | Decorator |
-| External ↔ domain models | Adapter (mappers) |
+| Concern | Pattern | Concrete home |
+|---|---|---|
+| Fare calculation | Strategy | `FareStrategy` impls in `:domain` (`StandardFareStrategy`, `SharedFareStrategy`, `AutoFareStrategy`, …) |
+| Strategy selection | Factory | `FareStrategyFactory` in `:domain` |
+| Surge pricing | Decorator | `SurgeFareStrategy` wraps another `FareStrategy`; it never instantiates one itself |
+| Ride lifecycle | State | sealed `RideState` + transitions in one reducer (see `domain/CLAUDE.md`) |
+| Location / status streams | Observer | `Flow` / `StateFlow` |
+| Cancel with undo, payment retry | Command | `CancelRideCommand`, `RetryPaymentCommand` |
+| Ride request creation | Builder | `RideRequest.Builder` in `:domain` |
+| Request validation | Chain of Responsibility | `RideRequestValidator` chain in `:domain` |
+| GPS smoothing, caching | Decorator | `SmoothedLocationSource`, `CachedFareRepository` in `:data` |
+| External ↔ domain models | Adapter | DTO/entity mappers in `:data`; `GoogleLatLngAdapter` |
+| Data access | Repository + Facade | repository impls hide Room + REST + WebSocket |
+| Shared socket | Singleton (scoped) | `WebSocketManager` as a Koin `single` in `:core:network` |
+| Use-case error/loading handling | Template Method | `BaseRideUseCase`: public `operator fun invoke` stays the only entry point, subclasses override a `protected` `execute()` |
+
+- `FareStrategyFactory`: prefer a registry (`Map<VehicleType, FareStrategy>` supplied by Koin) so
+  a new strategy is a new class plus a registration. If a `when` is used, it must be exhaustive
+  with no `else`.
+- `GoogleLatLngAdapter` touches Google Maps types, so it lives in `:core:location` (or the
+  feature that renders the map), never in `:domain`.
 
 ---
 
@@ -188,6 +215,15 @@ When you see or write a `TODO` / `FIXME`, flag it as a warning in your response 
 - Every use case: happy path plus at least 2 error paths.
 - Every reducer: a test for every Intent, including invalid transitions. Test the reducer directly; never mock it.
 - Test name format: `` `given <state>, when <action>, then <result>`() ``.
+- State-machine reducers (anything driving `RideState`, `PaymentState`) get a full
+  **Intent × State** matrix: every intent tested from every state, with invalid pairs
+  asserting the state is unchanged.
+
+### Integration tests
+
+- WebSocket events: integration tests against a local mock server (`libs.okhttp.mockwebserver`,
+  `mockwebserver3`) that cover connect, every event type parsed and mapped to domain, and
+  reconnect after a drop.
 
 ### UI tests
 
@@ -223,6 +259,9 @@ Use these project skills (in `.claude/skills/`) instead of writing boilerplate b
 
 If a task matches a skill, use the skill. Don't hand-write the same scaffold.
 
+More skills, subagents, MCP servers and hooks are **planned but not built yet**. They're tracked in
+`.claude/tech-plan/roadmap.md`. Don't try to invoke one until it exists under `.claude/`.
+
 ---
 
 ## 11. Before Finishing Any Task
@@ -248,3 +287,52 @@ If a task matches a skill, use the skill. Don't hand-write the same scaffold.
 - Never put business logic in a Composable or a Reducer side effect.
 - Never hardcode versions, keys, or user-facing strings.
 - Never skip a layer "because it's simple".
+- Never copy a code sample from the HLD/LLD PDF verbatim. Check it against §14 first.
+
+---
+
+## 13. Build Phases
+
+Each phase ends with a working build. Don't start the next phase without one.
+Full feature tables are in the HLD/LLD PDF; tooling status is in `.claude/tech-plan/roadmap.md`.
+
+| # | Phase | Main modules |
+|---|---|---|
+| 1 | Foundation: module skeleton, Gradle, `:domain` entities and repository interfaces, Koin base | all |
+| 2 | Auth: phone + OTP, JWT storage, profile setup, auth interceptor | `:feature:onboarding`, `:data`, `:core:network` |
+| 3 | Home map: Compose Maps, location Flow, Places autocomplete, recent places | `:feature:home`, `:core:location` |
+| 4 | Ride booking: vehicle selection, mocked fare estimate, Builder, validation chain | `:feature:ride-booking`, `:domain` |
+| 5 | Fare engine: real strategies, surge, factory | `:domain` |
+| 6 | WebSocket Simulator MCP (built before live tracking) | `.claude/` + external server |
+| 7 | Live tracking: driver pin, ETA, polyline, status banner | `:feature:live-tracking`, `:core:network`, `:data` |
+| 8 | Ride lifecycle: full state machine, cancel with undo, no-show timeout | `:domain`, `:feature:live-tracking` |
+| 9 | Driver mode: online toggle, location publishing, ride offers, navigation | `:feature:driver-mode` |
+| 10 | Payment: Razorpay, receipt, retry | `:feature:payment` |
+| 11 | Architecture review and polish | all |
+| 12 | Real backend: replace mocks | `:data` |
+
+**Current phase: 1 (Foundation).** Done: version catalog, convention plugins, module graph,
+root/`:domain`/`:data` CLAUDE.md, `create-mvi-feature` skill, ktlint/detekt.
+Remaining: `:domain` entities, repository interfaces, Koin base wiring, a CI check that
+`:domain` has no Android dependencies. Update this line when a phase completes.
+
+---
+
+## 14. Known HLD/LLD Sample Conflicts (this file wins)
+
+| PDF sample | Do this instead |
+|---|---|
+| `sealed class` for State/Intent/Effect/RideState | `sealed interface` (§7) |
+| Fare amounts as `Double` (`30.0`, `12.0`) | `Long` paise (`domain/CLAUDE.md`) |
+| `FareStrategyFactory` `when` with `else` | Registry map or exhaustive `when` (§6) |
+| `SurgeFareStrategy` calls `StandardFareStrategy()` | Decorator wrapping an injected `FareStrategy` (§6) |
+| Reducer calls `Clock.System.now()` | Timestamp carried on the Intent (§5) |
+| `suspend fun requestRide(): Flow<…>` | Non-suspend `fun …(): Flow<Result<…>>` (§4) |
+| ViewModel injects `FareStrategy` directly (LSP example) | ViewModel → `CalculateFareUseCase` (§4) |
+| Screen takes the ViewModel and navigates with `"tracking/$id"` | `Route`/`Screen` split; navigate through `:core:navigation` contracts (§5) |
+| `Effect.ShowError(message: String)` | Carry `UiError` / a string-resource id (§7) |
+| `dispatch()` with `else -> Unit` | Exhaustive `when` (§5) |
+| One `LocationRepository` (p.5) | `LocationSubscriber` + `LocationPublisher` (§6) |
+| Validators return `Result.failure(SomeException())` | Sealed domain errors (`domain/CLAUDE.md`) |
+| Ktor backend / Ktor WebSocket client | Spring Boot backend; OkHttp WebSocket (§1) |
+| `:data:local` / `:data:remote` modules | Packages inside `:data` (§3) |
