@@ -36,6 +36,22 @@ android {
 }
 
 dependencies {
+    implementation(project(":domain"))
+    implementation(project(":data"))
+    implementation(project(":core:common"))
+    implementation(project(":core:network"))
+    implementation(project(":core:location"))
+    implementation(project(":core:designsystem"))
+    implementation(project(":core:navigation"))
+    implementation(project(":feature:onboarding"))
+    implementation(project(":feature:home"))
+    implementation(project(":feature:ride-booking"))
+    implementation(project(":feature:live-tracking"))
+    implementation(project(":feature:driver-mode"))
+    implementation(project(":feature:payment"))
+    implementation(project(":feature:ride-history"))
+    implementation(project(":feature:profile"))
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

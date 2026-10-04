@@ -7,6 +7,9 @@ android {
 }
 
 dependencies {
+    implementation(project(":domain"))
+    implementation(project(":core:common"))
+
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
