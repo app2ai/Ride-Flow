@@ -17,7 +17,9 @@ import kotlin.time.Instant
  * @property driverId id of the assigned [Driver], or `null` while [RideStatus.SEARCHING] or if
  *   cancelled before assignment.
  */
-data class Ride @OptIn(ExperimentalTime::class) constructor(
+data class Ride
+@OptIn(ExperimentalTime::class)
+constructor(
     val id: String,
     val riderId: String,
     val status: RideStatus,

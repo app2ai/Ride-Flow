@@ -12,7 +12,9 @@ import kotlin.time.Instant
  * @property speedMetersPerSecond ground speed in m/s, or `null` if unknown.
  * @property accuracyMeters horizontal accuracy radius in metres, or `null` if unknown.
  */
-data class Location @OptIn(ExperimentalTime::class) constructor(
+data class Location
+@OptIn(ExperimentalTime::class)
+constructor(
     val point: GeoPoint,
     val timestamp: Instant,
     val bearing: Float? = null,
