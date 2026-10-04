@@ -89,6 +89,12 @@ See §3 (module boundaries), §4 (Clean Architecture detail), and §5 (MVI detai
   it as the `local/` and `remote/` packages inside `:data`. Do not create sub-modules.
 - Domain packages are singular: `model/`, `usecase/`, `repository/` (not the PDF's
   `entities/`, `usecases/`, `repositories/`). See `domain/CLAUDE.md`.
+- Module edges use `implementation(...)`. Use `api(...)` only when the module's public
+  signatures expose the other module's types, with a comment saying why (see
+  `domain/build.gradle.kts`).
+- Rider vs Driver: shared logic goes in `:domain` / `:core:*`; role-specific screens live in
+  their own feature modules (e.g. `:feature:driver-mode`). No `if (isDriver)` scattered
+  through shared UI.
 
 ### Convention plugins
 
@@ -99,6 +105,15 @@ See §3 (module boundaries), §4 (Clean Architecture detail), and §5 (MVI detai
 | `rideflow.android.feature` | every `:feature:*` |
 
 A new module must apply exactly one of these. Do not duplicate config they already provide.
+
+### Adding a new module
+
+1. For a feature, use the `create-mvi-feature` skill (§10) instead of doing this by hand.
+2. Apply exactly one convention plugin from the table above.
+3. Add only edges allowed by the dependency table. If a new edge is justified, update the
+   table in the same change.
+4. Give it its own Koin module and register it in `:app`'s `startKoin`.
+5. Add it to `settings.gradle.kts`, then run `./gradlew assembleDebug ktlintCheck detekt`.
 
 ---
 
@@ -185,7 +200,12 @@ Patterns already chosen for this project (reuse them, don't reinvent):
 - No `!!`. Handle nullability explicitly.
 - Prefer `val` and immutable collections.
 - Never use `GlobalScope`. Use `viewModelScope` or injected scopes.
+- Never use `runBlocking` in production code (tests use `runTest`).
 - Inject `CoroutineDispatcher`s; never hardcode `Dispatchers.IO` inside classes.
+- Wrap callback APIs (Maps, FCM, FusedLocationProvider) with `callbackFlow` in the module that
+  owns the source (`:core:location`, `:data`), never in UI code.
+- Constructor injection only. `KoinComponent` / `by inject()` is allowed only in Android entry
+  points (Activity, Application, Service, Worker, FCM service).
 - Format with ktlint; static analysis with detekt. Code must pass both.
 - No magic numbers. Use named constants.
 - Strings go in resources; never hardcode user-facing text in Compose.
@@ -282,7 +302,7 @@ More skills, subagents, MCP servers and hooks are **planned but not built yet**.
 
 - Never add Android imports to `:domain`.
 - Never call a use case or repository from a Composable.
-- Never use LiveData, RxJava, or `GlobalScope`.
+- Never use LiveData, RxJava, `GlobalScope`, or `runBlocking` in production code.
 - Never let one feature module import another.
 - Never put business logic in a Composable or a Reducer side effect.
 - Never hardcode versions, keys, or user-facing strings.
