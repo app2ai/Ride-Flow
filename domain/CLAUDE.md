@@ -7,8 +7,9 @@ of Android, frameworks, and every other module. These rules add to the root `CLA
 
 - Kotlin standard library
 - `kotlinx-coroutines-core` (Flow, suspend)
-- `kotlinx-datetime` (`Instant`; exposed as `api` from `domain/build.gradle.kts`) and
-  `kotlin.time.Duration`
+- `kotlin.time.Instant` and `kotlin.time.Duration` for timestamps and durations
+  (`kotlinx.datetime.Instant` was removed in kotlinx-datetime 0.7+); `kotlinx-datetime` itself
+  is exposed as `api` from `domain/build.gradle.kts` for calendar/time-zone work
 - `javax.inject`-free plain classes (Koin wiring happens in `:app`, not here)
 
 ## Forbidden
@@ -27,7 +28,8 @@ Stop and say where it should go instead.
 ```
 domain/src/main/kotlin/com/rtech/rideflow/domain/
   model/          Entities: User, Driver, Vehicle, Ride, Location, Fare, Route, Payment, Review
-                  Value types: VehicleType, RideState, CancelReason
+                  Value types: GeoPoint, StarRating, Currency, VehicleType, UserRole, DriverStatus,
+                  RideStatus, PaymentMethod, PaymentStatus, RideState, CancelReason
                   RideRequest + RideRequest.Builder (Builder pattern)
                   RideTimings (business timing constants, see below)
   repository/     Interfaces only: RideRepository, LocationSubscriber, LocationPublisher,

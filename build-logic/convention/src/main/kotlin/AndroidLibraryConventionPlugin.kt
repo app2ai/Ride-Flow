@@ -20,6 +20,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             pluginManager.apply("com.android.library")
+            optInToExperimentalTime()
 
             extensions.configure<LibraryExtension> {
                 compileSdk = COMPILE_SDK

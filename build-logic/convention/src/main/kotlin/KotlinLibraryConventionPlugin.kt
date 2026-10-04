@@ -24,6 +24,7 @@ class KotlinLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             pluginManager.apply(libs.pluginId("kotlin-jvm"))
+            optInToExperimentalTime()
 
             extensions.configure<JavaPluginExtension> {
                 sourceCompatibility = JAVA_VERSION

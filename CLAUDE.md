@@ -29,7 +29,7 @@ conflict with this file, **this file wins** (known conflicts are listed in §14)
 | Background work | WorkManager (retries mutations queued in Room when back online) |
 | Local storage | Room + DataStore |
 | Network | Retrofit + OkHttp |
-| Date/time | `kotlinx-datetime` (`Instant`); `kotlin.time.Duration` for durations |
+| Date/time | `kotlin.time.Instant` (opt-in to `ExperimentalTime` is set by the convention plugins) and `kotlin.time.Duration`; `kotlinx-datetime` for calendar/time-zone work |
 | Static analysis | ktlint (`org.jlleitschuh.gradle.ktlint`, `.editorconfig`) + detekt 2.0 (`dev.detekt`, `config/detekt/detekt.yml`), applied to every module from the root `build.gradle.kts` |
 | Build | Gradle Version Catalog (`gradle/libs.versions.toml`) + convention plugins in `build-logic/` |
 
@@ -86,7 +86,7 @@ See §3 (module boundaries), §4 (Clean Architecture detail), and §5 (MVI detai
 - Cross-feature navigation goes only through `:core:navigation`.
 - Features never import `:data`. They talk to use cases only; Koin wires implementations in `:app`.
 - `:data` is a **single module**. Where the HLD/LLD says `:data:local` or `:data:remote`, read
-  it as the `local/` and `remote/` packages inside `:data`. Do not create sub-modules.
+  it as the `local/` and `remote/` packages inside `:data`. Do not create submodules.
 - Domain packages are singular: `model/`, `usecase/`, `repository/` (not the PDF's
   `entities/`, `usecases/`, `repositories/`). See `domain/CLAUDE.md`.
 - Module edges use `implementation(...)`. Use `api(...)` only when the module's public
