@@ -1,5 +1,7 @@
 package com.rtech.rideflow.domain.model
 
+import kotlin.time.ExperimentalTime
+
 /**
  * The only place ride lifecycle transitions are defined.
  *
@@ -43,6 +45,7 @@ object RideStateMachine {
     private fun onDriverEnRoute(state: RideState, event: RideEvent.DriverEnRoute): RideState =
         if (state is RideState.DriverAssigned) RideState.DriverArriving(state.driver, event.eta) else state
 
+    @OptIn(ExperimentalTime::class)
     private fun onRideStarted(state: RideState, event: RideEvent.RideStarted): RideState =
         if (state is RideState.DriverArriving) RideState.InProgress(event.rideId, event.startedAt) else state
 

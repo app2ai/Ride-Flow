@@ -7,6 +7,7 @@ import com.rtech.rideflow.domain.model.RideStateFixtures.fare
 import com.rtech.rideflow.domain.model.RideStateFixtures.startedAt
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import kotlin.time.ExperimentalTime
 
 /** The valid transitions; [RideStateMachineInvalidTransitionTest] covers every other pair. */
 class RideStateMachineTest {
@@ -34,6 +35,7 @@ class RideStateMachineTest {
         )
     }
 
+    @OptIn(ExperimentalTime::class)
     @Test
     fun `given DriverArriving, when RideStarted, then InProgress with the event's id and start time`() {
         assertEquals(
@@ -45,6 +47,7 @@ class RideStateMachineTest {
         )
     }
 
+    @OptIn(ExperimentalTime::class)
     @Test
     fun `given InProgress, when RideCompleted, then PaymentPending with the final fare`() {
         assertEquals(

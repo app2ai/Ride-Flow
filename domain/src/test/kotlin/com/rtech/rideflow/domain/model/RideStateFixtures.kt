@@ -1,6 +1,7 @@
 package com.rtech.rideflow.domain.model
 
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /** Shared sample values for [RideStateMachine] tests. */
@@ -38,10 +39,12 @@ internal object RideStateFixtures {
     )
 
     val eta = ETA_MINUTES.minutes
+    @OptIn(ExperimentalTime::class)
     val startedAt: Instant = Instant.fromEpochSeconds(STARTED_AT_EPOCH_SECONDS)
     const val RIDE_ID = "ride-1"
 
     /** One instance of every [RideState]. */
+    @OptIn(ExperimentalTime::class)
     val allStates: List<RideState> = listOf(
         RideState.Idle,
         RideState.Searching,
@@ -54,6 +57,7 @@ internal object RideStateFixtures {
     )
 
     /** One instance of every [RideEvent]. */
+    @OptIn(ExperimentalTime::class)
     val allEvents: List<RideEvent> = listOf(
         RideEvent.SearchRide,
         RideEvent.DriverFound(driver),

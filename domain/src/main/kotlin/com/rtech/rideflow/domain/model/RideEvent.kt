@@ -1,6 +1,7 @@
 package com.rtech.rideflow.domain.model
 
 import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
@@ -33,7 +34,7 @@ sealed interface RideEvent {
      * @property rideId id of the ride.
      * @property startedAt when the trip started.
      */
-    data class RideStarted(val rideId: String, val startedAt: Instant) : RideEvent
+    data class RideStarted @OptIn(ExperimentalTime::class) constructor(val rideId: String, val startedAt: Instant) : RideEvent
 
     /**
      * The rider was dropped off.

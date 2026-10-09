@@ -1,6 +1,7 @@
 package com.rtech.rideflow.domain.model
 
 import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
@@ -37,7 +38,7 @@ sealed interface RideState {
      * @property rideId id of the ride.
      * @property startedAt when the trip started.
      */
-    data class InProgress(val rideId: String, val startedAt: Instant) : RideState
+    data class InProgress @OptIn(ExperimentalTime::class) constructor(val rideId: String, val startedAt: Instant) : RideState
 
     /**
      * The trip is over and is waiting for payment.
